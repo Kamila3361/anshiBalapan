@@ -8,9 +8,10 @@ const songRouter = Router();
 const songService = new SongService();
 const songController = new SongController(songService);
 
-songRouter.post("/upload", authMiddleware, songController.uploadSong);
+songRouter.post("/generate", songController.generateMusic);
+songRouter.post("/uploadtopinecone", songController.uploadSongToPinecone);
 songRouter.get("/allsongs", authMiddleware, songController.getAllSongs);
-songRouter.post("/delete/:songId", authMiddleware, songController.deleteSong);
-songRouter.post("/update/:songId", authMiddleware, songController.editSong);
+// songRouter.post("/delete/:songId", authMiddleware, songController.deleteSong);
+// songRouter.post("/update/:songId", authMiddleware, songController.editSong);
 
 export default songRouter;

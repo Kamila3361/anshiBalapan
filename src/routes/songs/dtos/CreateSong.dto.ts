@@ -1,10 +1,11 @@
 export interface CreateSongDto {
-    name: string;
-    singer: string;
-    released_date: string;
-    duration: string;
-    song_location: string | undefined;
+    title: string;
+    // voice: string;
+    lyric: string;
+    song_location: string;
     key_song: string;
-    poster_location: string | undefined;
+    poster_location: string;
     key_poster: string;
+    tags: string;
+    created_at: string;
 }

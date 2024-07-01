@@ -30,18 +30,18 @@ export const deleteBuckets = async (bucketName: string) => {
         .catch((err) => console.log(err.Code))
 }
 
-export const uploadFile = async ({bucketName, key, content, file}:
+export const uploadFile = async ({bucketName, key, content, fileContent}:
     {bucketName: string,
     key: string,
     content: string,
-    file: any}
-) => {
+    fileContent: any}
+): Promise<string> => {
     const upload = new Upload({
         client: s3,
         params: {
             Bucket: bucketName,
             Key: key,
-            Body: file.data,
+            Body: fileContent,
             ContentType: content,
             ACL: "public-read"
         }
@@ -49,7 +49,10 @@ export const uploadFile = async ({bucketName, key, content, file}:
 
     try {
         const res = await upload.done();
-        return res;
+        if(!res.Location){
+            throw new Error("no location");
+        }
+        return res.Location;
     } catch (err) {
         throw new Error(`Failed to upload file: ${err}`);
     }

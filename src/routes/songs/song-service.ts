@@ -5,17 +5,18 @@ import { CreateSongDto } from "./dtos/CreateSong.dto";
 export class SongService {  
 
     async uploadSong(createSongDto: CreateSongDto){
-        const {name, singer, released_date, duration, song_location, key_song, poster_location, key_poster} = createSongDto;
+        const { title, /*voice,*/ lyric, song_location, key_song, poster_location, key_poster, tags, created_at } = createSongDto;
 
         const newSong = new SongModel({
-            name: name,
-            singer: singer,
-            released_date: released_date,
-            duration: duration,
+            title: title,
+            // voice: voice,
+            lyric: lyric,
             song_location: song_location,
             key_song: key_song,
             poster_location: poster_location,
-            key_poster: key_poster
+            key_poster: key_poster,
+            tags: tags,
+            created_at: created_at
         });
 
         await newSong.save();
@@ -30,11 +31,11 @@ export class SongService {
         return await SongModel.findById(songId).exec();
     }
 
-    async deleteSong(songId: string): Promise<void> {
-        await SongModel.findByIdAndDelete(songId).exec();
-    }
+    // async deleteSong(songId: string): Promise<void> {
+    //     await SongModel.findByIdAndDelete(songId).exec();
+    // }
 
-    async updateSong(songId: string, updateData: Partial<ISong>): Promise<ISong | null> {
-        return await SongModel.findByIdAndUpdate(songId, updateData, { new: true }).exec();
-    }
+    // async updateSong(songId: string, updateData: Partial<ISong>): Promise<ISong | null> {
+    //     return await SongModel.findByIdAndUpdate(songId, updateData, { new: true }).exec();
+    // }
 }
