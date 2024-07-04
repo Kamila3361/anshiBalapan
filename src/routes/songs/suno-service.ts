@@ -3,7 +3,7 @@ import axios from 'axios';
 export async function generateSong(lyric: string, song_name: string, tags: string){
     try{
         const response = await axios.post(
-            "https://suno-api-tashimova.vercel.app/api/custom_generate",
+            "https://suno-api-nine-virid.vercel.app/api/custom_generate",
             {
               prompt: lyric,
               tags: tags,
