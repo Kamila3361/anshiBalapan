@@ -7,6 +7,12 @@ import { generateSong } from "./suno-service";
 import { customVoice } from "./aicovergen";
 import axios from 'axios';
 
+const voices = {
+    "Dua Lipa": "https://huggingface.co/AI-Wheelz/DUA-LIVE-RVCv2/resolve/main/DUA-LIVE-RVCv2.zip",
+    "Lana Del Rey": "https://huggingface.co/AIVER-SE/LanaDelRey/resolve/main/LanaDelRey.zip",
+    "Taylor Swift": "https://huggingface.co/itt0lp/taylordebut/resolve/main/taylor.zip"
+}
+
 export class SongController {
     private songService: SongService;
 
@@ -15,12 +21,13 @@ export class SongController {
     }
 
     generateMusic: RequestHandler = async (req:Request, res:Response) => {
-        const { prompt } = req.body;
+        const { prompt, voice } = req.body;
         
         if (!prompt) {
             return res.status(400).json({ message: 'Prompt and voice is required' });
         }
         try{
+            console.log("starts");
             //Generating song lyric with GPT-4
             const songLyric = await generateSongLyric(prompt);
             if (!songLyric) {
@@ -40,15 +47,18 @@ export class SongController {
 
             console.log(`Song generated successfully! url: ${response.audio_url}`);
 
-            //Customing voice of the music
-            const voiceUrl = "https://huggingface.co/AIVER-SE/LanaDelRey/resolve/main/LanaDelRey.zip";
-            console.log("Downloading voice model...");
-            const customedSong = await customVoice(voiceUrl, response.audio_url, "male-to-female");
-            if (!customedSong) {
-                return res.status(500).json({ message: 'Failed to generate song' });
+            let customedSong = response.audio_url;
+            //if voice is not selected, return the song without customing the voice
+            if(voice){
+                //Customing voice of the music
+                const voiceUrl = voices[voice];
+                console.log("Downloading voice model...");
+                customedSong = await customVoice(voiceUrl, response.audio_url);
+                if (!customedSong) {
+                    return res.status(500).json({ message: 'Failed to generate song' });
+                }
+                console.log(`Song voice customed successfully url: ${customedSong}`);
             }
-
-            console.log(`Song voice customed successfully url: ${customedSong}`);
 
             //Uploading the customed song and poster to S3
             const fileKeyPoster = `${uuidv4()}-poster-${songLyric.song_name}.jpeg`;

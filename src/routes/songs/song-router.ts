@@ -10,7 +10,7 @@ const songController = new SongController(songService);
 
 songRouter.post("/generate", songController.generateMusic);
 songRouter.post("/uploadtopinecone", songController.uploadSongToPinecone);
-songRouter.get("/allsongs", authMiddleware, songController.getAllSongs);
+songRouter.get("/allsongs", songController.getAllSongs);
 // songRouter.post("/delete/:songId", authMiddleware, songController.deleteSong);
 // songRouter.post("/update/:songId", authMiddleware, songController.editSong);
 

@@ -5,7 +5,7 @@ import songRouter from './songs/song-router'
 
 const globalRouter = Router()
 
-globalRouter.use('/auth', authRouter)
+// globalRouter.use('/auth', authRouter)
 globalRouter.use('/song', songRouter)
 // other routers can be added here
 

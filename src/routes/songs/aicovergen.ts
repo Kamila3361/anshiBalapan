@@ -6,7 +6,7 @@ const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
 });
 
-export async function customVoice(voiceUrl: string, musicUrl: string, pitch_change: string){ //pitch_change = male-to-female
+export async function customVoice(voiceUrl: string, musicUrl: string){ 
   try{
     const output = await replicate.run(
       "zsxkib/realistic-voice-cloning:0a9c7c558af4c0f20667c1bd1260ce32a2879944a0b9e44e1398660c077b1550",
@@ -18,7 +18,7 @@ export async function customVoice(voiceUrl: string, musicUrl: string, pitch_chan
           index_rate: 0,
           song_input: musicUrl,
           reverb_size: 0.15,
-          pitch_change: pitch_change,
+          pitch_change: "no change",
           rms_mix_rate: 0.25,
           filter_radius: 3,
           output_format: "mp3",
