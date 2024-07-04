@@ -18,7 +18,7 @@ export async function customVoice(voiceUrl: string, musicUrl: string){
           index_rate: 0,
           song_input: musicUrl,
           reverb_size: 0.15,
-          pitch_change: "no change",
+          pitch_change: "no-change",
           rms_mix_rate: 0.25,
           filter_radius: 3,
           output_format: "mp3",
