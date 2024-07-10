@@ -16,10 +16,10 @@ app.use(express.urlencoded({extended: true}));
 app.use(logger);
 app.use(fileUpload());
 app.use(cors());
-app.use('/api/v5', globalRouter)
+app.use('/', globalRouter)
 
 const server = createServer(app)
 
 server.listen(3000, () => {
-  console.log('server running at http://localhost:3000/api/v5')
+  console.log('server running at http://localhost:3000/')
 })

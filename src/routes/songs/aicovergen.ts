@@ -1,6 +1,10 @@
 import axios from "axios";
 import fs from "fs";
 import Replicate from "replicate";
+import { Lyric } from "./type";
+import { v4 as uuidv4 } from 'uuid';
+import { uploadFile } from "../../middlewares/s-3.middlerware";
+import { SongService } from "./song-service";
 
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
@@ -12,7 +16,7 @@ export async function customVoice(voiceUrl: string, musicUrl: string){
       "zsxkib/realistic-voice-cloning:0a9c7c558af4c0f20667c1bd1260ce32a2879944a0b9e44e1398660c077b1550",
       {
         input: {
-          protect: 0.33,
+          protect: 0,
           rvc_model: "CUSTOM",
           custom_rvc_model_download_url: voiceUrl,
           index_rate: 0,
@@ -38,6 +42,51 @@ export async function customVoice(voiceUrl: string, musicUrl: string){
   } catch(err: any){
     throw new Error("Failed to custom voice: " + err.message);
   }
+}
+
+export async function backgroundUploadMusic(songLyric: Lyric, response: any, musicUrl: string, songService: SongService) {
+  const fileKeyPoster = `${uuidv4()}-poster-${songLyric.song_name}.jpeg`;
+  const poster = await axios.get(response.image_url, { responseType: 'arraybuffer'});
+  console.log("Poster downloaded successfully!");
+
+  const fileKeySong = `${uuidv4()}-suno-api-${songLyric.song_name}.mp3`;
+  const song = await axios.get(musicUrl, { responseType: 'arraybuffer' });
+  console.log("Song downloaded successfully!");
+
+  const uploadPosterParams = {
+      bucketName: process.env.AWS_BUCKET_NAME!,
+      key: fileKeyPoster,   
+      content: 'image/jpeg',
+      fileContent: poster.data
+  };
+
+  const uploadFileParams = {
+      bucketName: process.env.AWS_BUCKET_NAME!,
+      key: fileKeySong,   
+      content: 'audio/mpeg',
+      fileContent: song.data
+  };
+
+  const songLocation = await uploadFile(uploadFileParams);
+  const posterLocation = await uploadFile(uploadPosterParams);
+
+  console.log("Song uploaded to s3 successfully!");
+
+  //Saving song in the database
+  const createSongDto = {
+      title: response.title,
+      // voice: voice,
+      lyric: response.lyric,
+      song_location: songLocation, 
+      key_song: fileKeySong,
+      poster_location: posterLocation,
+      key_poster: fileKeyPoster,
+      tags: response.tags,
+      created_at: response.created_at
+  }
+
+  const newSong = await songService.uploadSong(createSongDto);
+  console.log("Song uploaded to database successfully!");
 }
 
 // export async function downloadFile(url: string, filePath: string) {

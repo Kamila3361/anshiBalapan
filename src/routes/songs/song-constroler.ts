@@ -6,6 +6,7 @@ import { generateSongLyric, uploadSongToPinecone } from "./gpt-service";
 import { generateSong } from "./suno-service";
 import { customVoice } from "./aicovergen";
 import axios from 'axios';
+import { backgroundUploadMusic } from "./aicovergen";
 
 const voices = {
     "Dua Lipa": "https://huggingface.co/AI-Wheelz/DUA-LIVE-RVCv2/resolve/main/DUA-LIVE-RVCv2.zip",
@@ -40,7 +41,7 @@ export class SongController {
             console.log(songLyric);
 
             //Generating song with Suno API
-            const response = await generateSong(songLyric.song_lyric, songLyric.song_name, songLyric.tags);
+            const response = await generateSong(songLyric.song_lyric.slice(0, 3000), songLyric.song_name.slice(0, 80), songLyric.tags.slice(0, 120));
             if (!response) {
                 return res.status(500).json({ message: 'Failed to generate song' });
             }
@@ -61,49 +62,8 @@ export class SongController {
             }
 
             //Uploading the customed song and poster to S3
-            const fileKeyPoster = `${uuidv4()}-poster-${songLyric.song_name}.jpeg`;
-            const poster = await axios.get(response.image_url, { responseType: 'arraybuffer'});
-            console.log("Poster downloaded successfully!");
-
-            const fileKeySong = `${uuidv4()}-suno-api-${songLyric.song_name}.mp3`;
-            const song = await axios.get(customedSong, { responseType: 'arraybuffer' });
-            console.log("Song downloaded successfully!");
-
-            const uploadPosterParams = {
-                bucketName: process.env.AWS_BUCKET_NAME!,
-                key: fileKeyPoster,   
-                content: 'image/jpeg',
-                fileContent: poster.data
-            };
-
-            const uploadFileParams = {
-                bucketName: process.env.AWS_BUCKET_NAME!,
-                key: fileKeySong,   
-                content: 'audio/mpeg',
-                fileContent: song.data
-            };
-
-            const songLocation = await uploadFile(uploadFileParams);
-            const posterLocation = await uploadFile(uploadPosterParams);
-
-            console.log("Song uploaded to s3 successfully!");
-
-            //Saving song in the database
-            const createSongDto = {
-                title: response.title,
-                // voice: voice,
-                lyric: response.lyric,
-                song_location: songLocation, 
-                key_song: fileKeySong,
-                poster_location: posterLocation,
-                key_poster: fileKeyPoster,
-                tags: response.tags,
-                created_at: response.created_at
-            }
-
-            const newSong = await this.songService.uploadSong(createSongDto);
-    
-            res.status(201).json(newSong);
+            backgroundUploadMusic(songLyric, response, customedSong, this.songService);
+            res.status(201).json({musicUrl: customedSong, title: response.title, lyric: response.lyric});
         } catch (error) {
             console.error('Failed to generate song:', error);
             return res.status(500).json({ message: 'Internal server error' });
