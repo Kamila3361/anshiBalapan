@@ -18,7 +18,7 @@ const embeddings = new OpenAIEmbeddings({
 
 const index = pinecone.index("kazakhmusic");
 
-let systemPrompt = `You are professional kazakh song writer who writes kazakh songs in pop genre.
+let systemPrompt = `You are professional kazakh song writer who writes kazakh songs.
 You mostly write about love, life, moral, and other positive things.
 Your songs are in kazakh language. Your tags should include the musical information like the style of the song.
 Also your tags must be maximum 120 and minimum 100 charaxters long. Always include in your tags "female voice". Generate a song lyric based on the user given information and the examples provided below. 

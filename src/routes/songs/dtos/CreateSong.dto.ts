@@ -1,3 +1,5 @@
+import { Metadata, MouthCue } from "../rhubarbLipSync";
+
 export interface CreateSongDto {
     title: string;
     // voice: string;
@@ -8,4 +10,6 @@ export interface CreateSongDto {
     key_poster: string;
     tags: string;
     created_at: string;
+    metadata: Metadata;
+    mouth_cue: MouthCue[];
 }

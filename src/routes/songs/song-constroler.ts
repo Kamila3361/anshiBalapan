@@ -4,15 +4,25 @@ import { v4 as uuidv4 } from 'uuid';
 import { uploadFile } from "../../middlewares/s-3.middlerware";
 import { generateSongLyric, uploadSongToPinecone } from "./gpt-service";
 import { generateSong } from "./suno-service";
-import { customVoice } from "./aicovergen";
+import { customVoice, backgroundUploadMusic, retrieveVocals } from "./aicovergen";
 import axios from 'axios';
-import { backgroundUploadMusic } from "./aicovergen";
+import axiosRetry from 'axios-retry';
+import { getPhonemes } from "./rhubarbLipSync";
 
 const voices = {
     "Dua Lipa": "https://huggingface.co/AI-Wheelz/DUA-LIVE-RVCv2/resolve/main/DUA-LIVE-RVCv2.zip",
     "Lana Del Rey": "https://huggingface.co/AIVER-SE/LanaDelRey/resolve/main/LanaDelRey.zip",
     "Taylor Swift": "https://huggingface.co/itt0lp/taylordebut/resolve/main/taylor.zip"
 }
+
+axiosRetry(axios, {
+    retries: 3,
+    retryDelay: axiosRetry.exponentialDelay,
+    retryCondition: (error) => {
+      // Always return true to retry on any error
+      return true;
+    }
+});
 
 export class SongController {
     private songService: SongService;
@@ -61,9 +71,29 @@ export class SongController {
                 console.log(`Song voice customed successfully url: ${customedSong}`);
             }
 
+            //upload song to s3
+            const fileKeySong = `${uuidv4()}-suno-api-${songLyric.song_name}.mp3`;
+            const song = await axios.get(customedSong, { responseType: 'arraybuffer' });
+            console.log("Song downloaded successfully!");
+            const uploadFileParams = {
+                bucketName: process.env.AWS_BUCKET_NAME!,
+                key: fileKeySong,   
+                content: 'audio/mpeg',
+                fileContent: song.data
+            };
+            const songLocation = await uploadFile(uploadFileParams);
+            console.log("Song uploaded to s3 successfully!");   
+
+            //determining the timestamps of the lyrics in the song
+            const vocalsUrl = await retrieveVocals(songLocation);
+            if(!vocalsUrl){
+                return res.status(500).json({ message: 'Failed to seperate lyrics' });
+            }
+            const phonemes = await getPhonemes({message: songLyric.song_name, audioUrl: vocalsUrl})
+
             //Uploading the customed song and poster to S3
-            backgroundUploadMusic(songLyric, response, customedSong, this.songService);
-            res.status(201).json({musicUrl: customedSong, title: response.title, lyric: response.lyric});
+            backgroundUploadMusic(songLyric, response, songLocation, fileKeySong, this.songService, phonemes.metadata, phonemes.mouthCues);
+            res.status(201).json({musicUrl: songLocation, title: response.title, lyric: response.lyric, mouthCues: phonemes.mouthCues});
         } catch (error) {
             console.error('Failed to generate song:', error);
             return res.status(500).json({ message: 'Internal server error' });
@@ -87,78 +117,4 @@ export class SongController {
         const songs = await this.songService.getAllSongs();
         res.status(200).json(songs);
     }
-
-    // deleteSong: RequestHandler = async (req:Request, res:Response) => {
-    //     const { songId } = req.params;
-    //     try{
-    //         const song = await this.songService.getSong(songId);
-
-    //         if (!song) {
-    //             return res.status(404).json({ message: 'Song not found' });
-    //         }
-
-    //         const deleteSongParams = {
-    //             bucketName: process.env.AWS_BUCKET_NAME!,
-    //             key: song.key_song
-    //         }
-
-    //         const deletePosterParams = {
-    //             bucketName: process.env.AWS_BUCKET_NAME!,
-    //             key: song.key_poster
-    //         }
-
-    //         await deleteObject(deleteSongParams);
-    //         await deleteObject(deletePosterParams);
-
-    //         await this.songService.deleteSong(songId);
-
-    //         return res.status(200).json({ message: 'Song deleted successfully' });
-    //     } catch (error) {
-    //         console.error(`Failed to delete song with ID ${songId}:`, error);
-    //         return res.status(500).json({ message: 'Internal server error' });
-    //     }
-    // }
-
-    // editSong: RequestHandler = async (req:any, res:Response) => {
-    //     const { songId } = req.params;
-    //     const updateData = req.body;
-    //     try{
-    //         const existingSong = await this.songService.getSong(songId);
-
-    //         if (!existingSong) {
-    //             return res.status(404).json({ message: 'Song not found' });
-    //         }
-
-    //         let newSongLocation = existingSong.song_location;
-    //         let newPosterLocation  = existingSong.poster_location;
-
-    //         if(req.files && req.files.song){
-    //             const newSongParams = {
-    //                 bucketName: process.env.AWS_BUCKET_NAME!,
-    //                 key: existingSong.key_song,
-    //                 newFile: req.files.song,
-    //             };
-    //             newSongLocation = await putObject(newSongParams);
-    //         }
-
-    //         if(req.files && req.files.poster){
-    //             const newSongParams = {
-    //                 bucketName: process.env.AWS_BUCKET_NAME!,
-    //                 key: existingSong.key_poster,
-    //                 newFile: req.files.poster,
-    //             };
-    //             newPosterLocation = await putObject(newSongParams);
-    //         }
-
-    //         updateData.song_location = newSongLocation;
-    //         updateData.poster_location = newPosterLocation;
-
-    //         const updatedSong = await this.songService.updateSong(songId, updateData);
-
-    //         return res.status(200).json({ message: 'Song updated successfully', song: updatedSong });
-    //     } catch (error) {
-    //         console.error(`Failed to delete song with ID ${songId}:`, error);
-    //         return res.status(500).json({ message: 'Internal server error' });
-    //     }
-    // }
 }

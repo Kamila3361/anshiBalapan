@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema } from "mongoose";
+import { MouthCue, Metadata } from "../rhubarbLipSync";
 
 export interface ISong extends Document{
     title: string;
@@ -10,6 +11,8 @@ export interface ISong extends Document{
     key_poster: string;
     tags: string;
     created_at: string;
+    metadata: Metadata;
+    mouth_cue: MouthCue[];
 }
 
 const SongSchema: Schema = new Schema({
@@ -21,7 +24,9 @@ const SongSchema: Schema = new Schema({
     poster_location: { type: String, required: true },
     key_poster: { type: String, required: true },
     tags: { type: String, required: true },
-    created_at: { type: String, required: true}
+    created_at: { type: String, required: true},
+    metadata: { type: Object, required: true },
+    mouth_cue: { type: Array, required: true }
 });
 
 export default mongoose.model<ISong>('Song', SongSchema);

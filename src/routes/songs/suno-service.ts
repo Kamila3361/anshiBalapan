@@ -1,13 +1,5 @@
 import axios from 'axios';
 
-// const sunoapis = {
-//   "api1": "https://api1.sunoapi.software",
-//   "api2": "https://api2.sunoapi.software",
-//   "api3": "https://api3.sunoapi.software",
-//   "api4": "https://api4.sunoapi.software",
-//   "api5": "https://api5.sunoapi.software",
-// }
-
 const sunoapis = ["https://api1.sunoapi.software", "https://api2.sunoapi.software", "https://api3.sunoapi.software", "https://api4.sunoapi.software", "https://api5.sunoapi.software"];
 
 export async function generateSong(lyric: string, song_name: string, tags: string){
@@ -46,9 +38,9 @@ async function chooseApi() {
     console.log("API credits left: " + credits + " for " + sunoapis[api]);
     api = api + 1;
   } while (api < 5 && credits <= 0);
-  console.log("API chosen: " + sunoapis[api]);
+  console.log("API chosen: " + sunoapis[api - 1]);
   if(api === 5 && credits === 0){
     throw new Error("No API credits left");
   }
-  return api;
+  return api - 1;
 }
