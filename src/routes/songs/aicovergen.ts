@@ -182,73 +182,76 @@ export async function retrieveVocals(audioUrl: string) {
 // }
 
 export async function backgroundUploadMusic(songLyric: Lyric, response: any, songService: SongService, customedSong: string) {
-  try {
-    //upload song to s3
-    const fileKeySong = `${uuidv4()}-suno-api-${songLyric.song_name}.mp3`;
-    const song = await axios.get(customedSong, { responseType: 'arraybuffer' });
-    console.log("Song downloaded successfully!");
-    const uploadFileParams = {
+  const maxRetries = 5;
+  const delayMs = 2000;
+  let attempts = 0;
+
+  while (attempts < maxRetries) {
+    try {
+      //upload song to s3
+      const fileKeySong = `${uuidv4()}-suno-api-${songLyric.song_name}.mp3`;
+      const song = await axios.get(customedSong, { responseType: 'arraybuffer' });
+      console.log("Song downloaded successfully!");
+      const uploadFileParams = {
+          bucketName: process.env.AWS_BUCKET_NAME!,
+          key: fileKeySong,   
+          content: 'audio/mpeg',
+          fileContent: song.data
+      };
+      const songLocation = await uploadFile(uploadFileParams);
+      console.log("Song uploaded to s3 successfully!");   
+
+      //determining the timestamps of the lyrics in the song
+      const vocalsUrl = await retrieveVocals(songLocation);
+      if(!vocalsUrl){
+          throw new Error('Failed to seperate lyrics');
+      }
+      const phonemes = await getPhonemes({message: songLyric.song_name, audioUrl: vocalsUrl})
+
+      const fileKeyPoster = `${uuidv4()}-poster-${songLyric.song_name}.jpeg`;
+      const poster = await axios.get(response.image_url, { responseType: 'arraybuffer'});
+      console.log("Poster downloaded successfully!");
+
+      const uploadPosterParams = {
         bucketName: process.env.AWS_BUCKET_NAME!,
-        key: fileKeySong,   
-        content: 'audio/mpeg',
-        fileContent: song.data
-    };
-    const songLocation = await uploadFile(uploadFileParams);
-    console.log("Song uploaded to s3 successfully!");   
+        key: fileKeyPoster,   
+        content: 'image/jpeg',
+        fileContent: poster.data
+      };
 
-    //determining the timestamps of the lyrics in the song
-    const vocalsUrl = await retrieveVocals(songLocation);
-    if(!vocalsUrl){
-        throw new Error('Failed to seperate lyrics');
-    }
-    const phonemes = await getPhonemes({message: songLyric.song_name, audioUrl: vocalsUrl})
+      const posterLocation = await uploadFile(uploadPosterParams);
 
-    const fileKeyPoster = `${uuidv4()}-poster-${songLyric.song_name}.jpeg`;
-    const poster = await axios.get(response.image_url, { responseType: 'arraybuffer'});
-    console.log("Poster downloaded successfully!");
+      console.log("Song uploaded to s3 successfully!");
 
-    const uploadPosterParams = {
-      bucketName: process.env.AWS_BUCKET_NAME!,
-      key: fileKeyPoster,   
-      content: 'image/jpeg',
-      fileContent: poster.data
-    };
+      //Saving song in the database
+      const createSongDto = {
+        title: response.title,
+        // voice: voice,
+        lyric: response.lyric,
+        song_location: songLocation, 
+        key_song: fileKeySong,
+        poster_location: posterLocation,
+        key_poster: fileKeyPoster,
+        tags: response.tags,
+        created_at: response.created_at,
+        metadata: phonemes.metadata,
+        mouth_cue: phonemes.mouthCues
+      }
 
-    const posterLocation = await uploadFile(uploadPosterParams);
-
-    console.log("Song uploaded to s3 successfully!");
-
-    //Saving song in the database
-    const createSongDto = {
-      title: response.title,
-      // voice: voice,
-      lyric: response.lyric,
-      song_location: songLocation, 
-      key_song: fileKeySong,
-      poster_location: posterLocation,
-      key_poster: fileKeyPoster,
-      tags: response.tags,
-      created_at: response.created_at,
-      metadata: phonemes.metadata,
-      mouth_cue: phonemes.mouthCues
-    }
-
-    const newSong = await songService.uploadSong(createSongDto);
-    console.log("Song uploaded to database successfully!");
-  } catch (error) {
-      console.log('Error during song upload:', error);
+      const newSong = await songService.uploadSong(createSongDto);
+      console.log("Song uploaded to database successfully!");
+      return newSong;
+    } catch (error) {
+      console.error('Error during background function:', error);
+      attempts++;
+      if (attempts < maxRetries) {
+        console.log(`Retrying background function in ${delayMs / 1000} seconds...`);
+        await delay(delayMs);
+      } else {
+        console.error('Max retries reached. Failing...');
+        console.error('Error during background function:', error);
+      }
     }
   }
-  // const fileKeySong = `${uuidv4()}-suno-api-${songLyric.song_name}.mp3`;
-  // const song = await axios.get(musicUrl, { responseType: 'arraybuffer' });
-  // console.log("Song downloaded successfully!");
-
-  // const uploadFileParams = {
-  //     bucketName: process.env.AWS_BUCKET_NAME!,
-  //     key: fileKeySong,   
-  //     content: 'audio/mpeg',
-  //     fileContent: song.data
-  // };
-
-  // const songLocation = await uploadFile(uploadFileParams);
+}
 
