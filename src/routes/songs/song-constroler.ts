@@ -8,6 +8,9 @@ import { customVoice, backgroundUploadMusic, retrieveVocals } from "./aicovergen
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { getPhonemes } from "./rhubarbLipSync";
+import path from 'path';
+import fs from 'fs';
+import { promisify } from 'util';
 
 const voices = {
     "Dua Lipa": "https://huggingface.co/AI-Wheelz/DUA-LIVE-RVCv2/resolve/main/DUA-LIVE-RVCv2.zip",
@@ -71,29 +74,29 @@ export class SongController {
                 console.log(`Song voice customed successfully url: ${customedSong}`);
             }
 
-            //upload song to s3
-            const fileKeySong = `${uuidv4()}-suno-api-${songLyric.song_name}.mp3`;
-            const song = await axios.get(customedSong, { responseType: 'arraybuffer' });
-            console.log("Song downloaded successfully!");
-            const uploadFileParams = {
-                bucketName: process.env.AWS_BUCKET_NAME!,
-                key: fileKeySong,   
-                content: 'audio/mpeg',
-                fileContent: song.data
-            };
-            const songLocation = await uploadFile(uploadFileParams);
-            console.log("Song uploaded to s3 successfully!");   
+            // //upload song to s3
+            // const fileKeySong = `${uuidv4()}-suno-api-${songLyric.song_name}.mp3`;
+            // const song = await axios.get(customedSong, { responseType: 'arraybuffer' });
+            // console.log("Song downloaded successfully!");
+            // const uploadFileParams = {
+            //     bucketName: process.env.AWS_BUCKET_NAME!,
+            //     key: fileKeySong,   
+            //     content: 'audio/mpeg',
+            //     fileContent: song.data
+            // };
+            // const songLocation = await uploadFile(uploadFileParams);
+            // console.log("Song uploaded to s3 successfully!");   
 
-            //determining the timestamps of the lyrics in the song
-            const vocalsUrl = await retrieveVocals(songLocation);
-            if(!vocalsUrl){
-                return res.status(500).json({ message: 'Failed to seperate lyrics' });
-            }
-            const phonemes = await getPhonemes({message: songLyric.song_name, audioUrl: vocalsUrl})
+            // //determining the timestamps of the lyrics in the song
+            // const vocalsUrl = await retrieveVocals(songLocation);
+            // if(!vocalsUrl){
+            //     return res.status(500).json({ message: 'Failed to seperate lyrics' });
+            // }
+            // const phonemes = await getPhonemes({message: songLyric.song_name, audioUrl: vocalsUrl})
 
             //Uploading the customed song and poster to S3
-            backgroundUploadMusic(songLyric, response, songLocation, fileKeySong, this.songService, phonemes.metadata, phonemes.mouthCues);
-            res.status(201).json({musicUrl: songLocation, title: response.title, lyric: response.lyric, mouthCues: phonemes.mouthCues});
+            backgroundUploadMusic(songLyric, response, this.songService, customedSong);
+            res.status(201).json({musicUrl: response.audio_url, title: response.title, lyric: response.lyric});
         } catch (error) {
             console.error('Failed to generate song:', error);
             return res.status(500).json({ message: 'Internal server error' });
