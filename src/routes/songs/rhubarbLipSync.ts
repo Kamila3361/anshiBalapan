@@ -2,6 +2,7 @@ import fs from 'fs';
 import axios from 'axios';
 import { execCommand } from "../../utils/files";
 import { delay } from './aicovergen';
+import * as ps from 'path';
 
 export interface MouthCue {
   start: number;
@@ -23,6 +24,11 @@ const downloadFile = async (url: string, path: string): Promise<void> => {
   const maxRetries = 5;
   const delayMs = 3000;
   let attempts = 0;
+
+  const dir = ps.dirname(path); // Use the alias here
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
 
   while (attempts < maxRetries) {
     console.log('Starting downloading the file (lypsync), attempt:', attempts + 1);
