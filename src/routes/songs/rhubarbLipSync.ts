@@ -63,8 +63,8 @@ const getPhonemes = async ({ message, audioUrl }: { message: string, audioUrl: s
     const sanitizedMessage = message.replace(/\s+/g, '');
     try {
     const time = new Date().getTime();
-    const localWavPath = `/home/kamila/anshiBalapan/back/src/audios/message_${sanitizedMessage}.wav`;
-    const localJsonPath = `/home/kamila/anshiBalapan/back/src/audios/message_${sanitizedMessage}.json`;
+    const localWavPath = `/root/anshiBalapan/src/audios/message_${sanitizedMessage}.wav`;
+    const localJsonPath = `/root/anshiBalapan/src/audios/message_${sanitizedMessage}.json`;
 
     // Step 1: Download the file
     console.log(`Downloading audio file from ${audioUrl}`);
@@ -74,7 +74,7 @@ const getPhonemes = async ({ message, audioUrl }: { message: string, audioUrl: s
     // Step 2: Generate phonemes JSON
     console.log(`Starting lip sync for message ${sanitizedMessage}`);
     await execCommand({
-      command: `/home/kamila/Rhubarb-Lip-Sync-1.13.0-Linux/rhubarb -f json -o ${localJsonPath} ${localWavPath} -r phonetic`,
+      command: `/app/Rhubarb-Lip-Sync-1.13.0-Linux/rhubarb -f json -o ${localJsonPath} ${localWavPath} -r phonetic`,
     });
     console.log(`Lip sync done in ${new Date().getTime() - time}ms`);
 
