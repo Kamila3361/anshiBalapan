@@ -96,7 +96,7 @@ export class SongController {
 
             //Uploading the customed song and poster to S3
             backgroundUploadMusic(songLyric, response, this.songService, customedSong);
-            res.status(201).json({musicUrl: response.audio_url, title: response.title, lyric: response.lyric});
+            res.status(201).json({musicUrl: customedSong, title: response.title, lyric: response.lyric});
         } catch (error) {
             console.error('Failed to generate song:', error);
             return res.status(500).json({ message: 'Internal server error' });
